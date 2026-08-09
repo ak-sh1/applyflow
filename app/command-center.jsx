@@ -209,7 +209,6 @@ export default function CommandCenter({ user, supabase }) {
           <span>ApplyFlow</span>
         </a>
         <div className="top-actions">
-          <button className="help-button" onClick={() => setNotice("Add a role, record its next step, then move it through the pipeline as you hear back.")} aria-label="Help"><Icon>?</Icon></button>
           <div className="profile-wrap">
             <button className="avatar" onClick={() => setShowProfile((value) => !value)} aria-expanded={showProfile} aria-label="Open profile menu">{initials}</button>
             {showProfile && (
