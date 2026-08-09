@@ -1,18 +1,15 @@
 "use client";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 
-type Mode = "sign-in" | "sign-up";
-
-export default function AuthScreen({ supabase }: { supabase: SupabaseClient }) {
-  const [mode, setMode] = useState<Mode>("sign-in");
+export default function AuthScreen({ supabase }) {
+  const [mode, setMode] = useState("sign-in");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email") ?? "").trim();
@@ -33,16 +30,21 @@ export default function AuthScreen({ supabase }: { supabase: SupabaseClient }) {
     setLoading(false);
     if (result.error) {
       setIsError(true);
-      setMessage(result.error.message);
+      const isRateLimited = result.error.message.toLowerCase().includes("rate limit");
+      setMessage(isRateLimited
+        ? "The confirmation email service is temporarily at its limit. Try again in about an hour."
+        : result.error.message);
       return;
     }
 
     if (mode === "sign-up" && !result.data.session) {
       setMessage("Check your email to confirm your account, then sign in.");
+    } else if (mode === "sign-up") {
+      setMessage("Account created. Loading your dashboard…");
     }
   }
 
-  function changeMode(nextMode: Mode) {
+  function changeMode(nextMode) {
     setMode(nextMode);
     setMessage("");
     setIsError(false);

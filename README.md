@@ -17,7 +17,7 @@ steps, and move applications through Saved, Applied, Interview and Offer.
 
 ## Tech stack
 
-- Next.js 16, React 19 and TypeScript
+- Next.js 16, React 19 and JavaScript
 - Supabase Auth and PostgreSQL
 - Supabase Row Level Security policies
 - Vercel

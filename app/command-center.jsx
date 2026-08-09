@@ -1,22 +1,21 @@
 "use client";
 
-import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { STATUSES, type Application, type Status } from "@/lib/types";
+import { useEffect, useMemo, useState } from "react";
+import { STATUSES } from "@/lib/applications";
 
 const WEEK_AGO_AT_LOAD = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
-function Icon({ children }: { children: React.ReactNode }) {
+function Icon({ children }) {
   return <span aria-hidden="true" className="icon">{children}</span>;
 }
 
-function formatDate(value: string | null) {
+function formatDate(value) {
   if (!value) return "Not applied";
   return new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", year: "numeric" })
     .format(new Date(`${value}T12:00:00`));
 }
 
-function normalizeJobUrl(value: string) {
+function normalizeJobUrl(value) {
   if (!value.trim()) return null;
   try {
     const url = new URL(value);
@@ -26,11 +25,11 @@ function normalizeJobUrl(value: string) {
   }
 }
 
-export default function CommandCenter({ user, supabase }: { user: User; supabase: SupabaseClient }) {
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [activeStatus, setActiveStatus] = useState<"All" | Status>("All");
+export default function CommandCenter({ user, supabase }) {
+  const [applications, setApplications] = useState([]);
+  const [activeStatus, setActiveStatus] = useState("All");
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<Application | null>(null);
+  const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -51,7 +50,7 @@ export default function CommandCenter({ user, supabase }: { user: User; supabase
       if (error) {
         setNotice("Applications could not be loaded. Check that the Supabase schema has been applied.");
       } else {
-        const rows = (data ?? []) as Application[];
+        const rows = data ?? [];
         setApplications(rows);
         setSelected(rows[0] ?? null);
       }
@@ -77,7 +76,7 @@ export default function CommandCenter({ user, supabase }: { user: User; supabase
   const counts = useMemo(() => {
     return Object.fromEntries(
       STATUSES.map((status) => [status, applications.filter((item) => item.status === status).length]),
-    ) as Record<Status, number>;
+    );
   }, [applications]);
 
   const weeklyCount = useMemo(() => {
@@ -101,13 +100,13 @@ export default function CommandCenter({ user, supabase }: { user: User; supabase
     .map((part) => part[0]?.toUpperCase())
     .join("");
 
-  async function addApplication(event: FormEvent<HTMLFormElement>) {
+  async function addApplication(event) {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const company = String(form.get("company") ?? "").trim();
     const role = String(form.get("role") ?? "").trim();
-    const status = String(form.get("status") ?? "Saved") as Status;
+    const status = String(form.get("status") ?? "Saved");
     const rawJobUrl = String(form.get("jobUrl") ?? "");
     const jobUrl = normalizeJobUrl(rawJobUrl);
 
@@ -147,7 +146,7 @@ export default function CommandCenter({ user, supabase }: { user: User; supabase
       return;
     }
 
-    const application = data as Application;
+    const application = data;
     setApplications((current) => [application, ...current]);
     setSelected(application);
     setNotice(`${company} was added to your pipeline.`);
@@ -155,7 +154,7 @@ export default function CommandCenter({ user, supabase }: { user: User; supabase
     formElement.reset();
   }
 
-  async function moveToNextStage(application: Application) {
+  async function moveToNextStage(application) {
     const currentIndex = STATUSES.indexOf(application.status);
     const status = STATUSES[Math.min(currentIndex + 1, STATUSES.length - 1)];
     if (status === application.status) return;
@@ -173,13 +172,13 @@ export default function CommandCenter({ user, supabase }: { user: User; supabase
       return;
     }
 
-    const updated = data as Application;
+    const updated = data;
     setApplications((current) => current.map((item) => item.id === application.id ? updated : item));
     setSelected(updated);
     setNotice(`${application.company} moved to ${status}.`);
   }
 
-  async function deleteApplication(application: Application) {
+  async function deleteApplication(application) {
     if (!window.confirm(`Delete the ${application.company} application? This cannot be undone.`)) return;
 
     const { error } = await supabase
@@ -275,7 +274,7 @@ export default function CommandCenter({ user, supabase }: { user: User; supabase
               </div>
             </div>
             <div className="status-tabs" role="tablist" aria-label="Filter by application status">
-              {(["All", ...STATUSES] as const).map((status) => (
+              {["All", ...STATUSES].map((status) => (
                 <button key={status} className={activeStatus === status ? "active" : ""} onClick={() => setActiveStatus(status)} role="tab" aria-selected={activeStatus === status}>
                   {status}<span>{status === "All" ? applications.length : counts[status]}</span>
                 </button>

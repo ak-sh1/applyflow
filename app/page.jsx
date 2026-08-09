@@ -1,6 +1,5 @@
 "use client";
 
-import type { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import AuthScreen from "./auth-screen";
 import CommandCenter from "./command-center";
@@ -8,7 +7,7 @@ import { getSupabase } from "@/lib/supabase";
 
 export default function Home() {
   const supabase = getSupabase();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(Boolean(supabase));
 
   useEffect(() => {
