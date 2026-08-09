@@ -22,7 +22,7 @@ steps, and move applications through Saved, Applied, Interview and Offer.
 
 ## Run locally
 
-Requirements: Node.js 20.9 or newer and a Supabase project.
+Requirements: Node.js 22 or newer and a Supabase project.
 
 1. Install dependencies:
 
