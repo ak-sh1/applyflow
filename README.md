@@ -4,6 +4,8 @@ ApplyFlow is a full-stack internship application tracker. Users create an
 account, save opportunities, search and filter their pipeline, record next
 steps, and move applications through Saved, Applied, Interview and Offer.
 
+**Live demo:** [applyflow-ak-dac3.vercel.app](https://applyflow-ak-dac3.vercel.app)
+
 ## Highlights
 
 - Email/password authentication with Supabase Auth
