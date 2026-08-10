@@ -27,6 +27,17 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <footer className="creator-credit" aria-label="Creator credit">
+          <span>Built by</span>
+          <a
+            href="https://github.com/ak-sh1"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Visit Akash's GitHub profile"
+          >
+            Akash ↗
+          </a>
+        </footer>
       </body>
     </html>
   );
