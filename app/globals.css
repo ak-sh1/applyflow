@@ -24,6 +24,10 @@ button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid rgba(75, 99, 231, .35); outline-offset: 2px; }
 
+.creator-credit { position: fixed; right: 18px; bottom: 16px; z-index: 40; display: flex; align-items: center; gap: 5px; padding: 7px 11px; border: 1px solid rgba(23,32,54,.09); border-radius: 999px; background: rgba(255,255,255,.92); box-shadow: 0 7px 22px rgba(23,32,54,.10); color: #858c9b; font-size: 11px; backdrop-filter: blur(8px); }
+.creator-credit a { color: #4056ca; font-weight: 750; text-decoration: none; }
+.creator-credit a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
 .app-shell { min-height: 100vh; }
 .topbar { height: 72px; padding: 0 28px; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; }
 .brand { display: flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; font-size: 18px; font-weight: 750; letter-spacing: -.02em; }
@@ -113,6 +117,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 @media (max-width: 760px) {
+  .creator-credit { right: 11px; bottom: 10px; padding: 6px 9px; font-size: 10px; }
   .topbar { height: 62px; padding: 0 17px; }.workspace { display: block; }.sidebar { display: none; }
   .main-content { padding: 29px 17px 60px; }.page-heading { align-items: flex-start; }.page-heading > div { max-width: 70%; }.page-heading h1 { font-size: 34px; }.page-heading p { line-height: 1.5; }
   .metrics { grid-template-columns: 1fr 1fr; }.metrics article { min-height: 105px; padding: 14px; }.metrics article small { display: none; }
