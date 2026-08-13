@@ -5,7 +5,7 @@ import { useState } from "react";
 
 export default function AuthScreen({ supabase }) {
   const [mode, setMode] = useState("sign-in");
-  const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState("");
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
@@ -15,7 +15,7 @@ export default function AuthScreen({ supabase }) {
     const email = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
 
-    setLoading(true);
+    setLoadingAction("account");
     setMessage("");
     setIsError(false);
 
@@ -27,7 +27,7 @@ export default function AuthScreen({ supabase }) {
         })
       : await supabase.auth.signInWithPassword({ email, password });
 
-    setLoading(false);
+    setLoadingAction("");
     if (result.error) {
       setIsError(true);
       const isRateLimited = result.error.message.toLowerCase().includes("rate limit");
@@ -41,6 +41,24 @@ export default function AuthScreen({ supabase }) {
       setMessage("Check your email to confirm your account, then sign in.");
     } else if (mode === "sign-up") {
       setMessage("Account created. Loading your dashboard…");
+    }
+  }
+
+  async function continueAsGuest() {
+    setLoadingAction("guest");
+    setMessage("");
+    setIsError(false);
+
+    const { error } = await supabase.auth.signInAnonymously({
+      options: { data: { guest_demo: true, demo_seeded: false } },
+    });
+
+    setLoadingAction("");
+    if (error) {
+      setIsError(true);
+      setMessage(error.message.toLowerCase().includes("anonymous sign-ins")
+        ? "Guest access is temporarily unavailable. Please use an account for now."
+        : `Could not open the guest demo: ${error.message}`);
     }
   }
 
@@ -76,17 +94,28 @@ export default function AuthScreen({ supabase }) {
           <h2>{mode === "sign-in" ? "Sign in to ApplyFlow" : "Create your account"}</h2>
           <p>{mode === "sign-in" ? "Continue managing your application pipeline." : "Start organizing your internship search in minutes."}</p>
 
+          <div className="guest-entry">
+            <div className="guest-entry-label"><span>QUICK DEMO</span><span>No account needed</span></div>
+            <button className="guest-button" type="button" onClick={continueAsGuest} disabled={Boolean(loadingAction)}>
+              <span><strong>{loadingAction === "guest" ? "Opening demo…" : "Continue as guest"}</strong><small>Explore a ready-to-use workspace</small></span>
+              <b aria-hidden="true">→</b>
+            </button>
+          </div>
+
+          <div className="auth-divider"><span>or use your account</span></div>
+
           <div className="auth-tabs" role="tablist" aria-label="Account action">
             <button className={mode === "sign-in" ? "active" : ""} onClick={() => changeMode("sign-in")} type="button">Sign in</button>
             <button className={mode === "sign-up" ? "active" : ""} onClick={() => changeMode("sign-up")} type="button">Create account</button>
           </div>
 
+          {message && <p className={isError ? "auth-message error" : "auth-message"} role="status">{message}</p>}
+
           <form onSubmit={submit} className="auth-form">
             <label>Email<input name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></label>
             <label>Password<input name="password" type="password" minLength={8} autoComplete={mode === "sign-in" ? "current-password" : "new-password"} placeholder="At least 8 characters" required /></label>
-            {message && <p className={isError ? "auth-message error" : "auth-message"} role="status">{message}</p>}
-            <button className="primary-button auth-submit" disabled={loading}>
-              {loading ? "Please wait…" : mode === "sign-in" ? "Sign in" : "Create account"}
+            <button className="primary-button auth-submit" disabled={Boolean(loadingAction)}>
+              {loadingAction === "account" ? "Please wait…" : mode === "sign-in" ? "Sign in" : "Create account"}
             </button>
           </form>
 

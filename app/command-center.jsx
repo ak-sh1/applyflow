@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { STATUSES } from "@/lib/applications";
+import { createGuestDemoApplications, STATUSES } from "@/lib/applications";
 
 const WEEK_AGO_AT_LOAD = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
@@ -26,6 +26,7 @@ function normalizeJobUrl(value) {
 }
 
 export default function CommandCenter({ user, supabase }) {
+  const isGuest = Boolean(user.is_anonymous);
   const [applications, setApplications] = useState([]);
   const [activeStatus, setActiveStatus] = useState("All");
   const [query, setQuery] = useState("");
@@ -50,7 +51,25 @@ export default function CommandCenter({ user, supabase }) {
       if (error) {
         setNotice("Applications could not be loaded. Check that the Supabase schema has been applied.");
       } else {
-        const rows = data ?? [];
+        let rows = data ?? [];
+
+        if (isGuest && !rows.length && !user.user_metadata?.demo_seeded) {
+          const { data: demoRows, error: demoError } = await supabase
+            .from("applications")
+            .insert(createGuestDemoApplications(user.id))
+            .select("*");
+
+          if (!active) return;
+          if (demoError) {
+            setNotice("The demo opened, but its sample applications could not be loaded.");
+          } else {
+            rows = demoRows ?? [];
+            await supabase.auth.updateUser({
+              data: { ...user.user_metadata, guest_demo: true, demo_seeded: true },
+            });
+          }
+        }
+
         setApplications(rows);
         setSelected(rows[0] ?? null);
       }
@@ -59,7 +78,7 @@ export default function CommandCenter({ user, supabase }) {
 
     loadApplications();
     return () => { active = false; };
-  }, [supabase, user.id]);
+  }, [isGuest, supabase, user.id, user.user_metadata]);
 
   const visibleApplications = useMemo(() => {
     const normalizedQuery = query.toLowerCase().trim();
@@ -93,7 +112,7 @@ export default function CommandCenter({ user, supabase }) {
     .filter((item) => item.next_step && item.next_step !== "Add your next action")
     .slice(0, 3);
 
-  const initials = (user.email ?? "User")
+  const initials = (isGuest ? "Guest" : user.email ?? "User")
     .split(/[@._-]/)
     .filter(Boolean)
     .slice(0, 2)
@@ -209,13 +228,14 @@ export default function CommandCenter({ user, supabase }) {
           <span>ApplyFlow</span>
         </a>
         <div className="top-actions">
+          {isGuest && <span className="guest-badge"><span /> Guest demo</span>}
           <div className="profile-wrap">
             <button className="avatar" onClick={() => setShowProfile((value) => !value)} aria-expanded={showProfile} aria-label="Open profile menu">{initials}</button>
             {showProfile && (
               <div className="profile-menu">
-                <strong>{user.email}</strong>
-                <span>Your application data is private to this account.</span>
-                <button onClick={signOut}>Sign out</button>
+                <strong>{isGuest ? "Guest demo" : user.email}</strong>
+                <span>{isGuest ? "Sample data belongs only to this private guest session." : "Your application data is private to this account."}</span>
+                <button onClick={signOut}>{isGuest ? "Exit demo" : "Sign out"}</button>
               </div>
             )}
           </div>
@@ -239,6 +259,12 @@ export default function CommandCenter({ user, supabase }) {
         </aside>
 
         <section className="main-content" id="dashboard">
+          {isGuest && (
+            <aside className="guest-demo-banner">
+              <span className="guest-demo-icon" aria-hidden="true">◇</span>
+              <div><strong>You’re exploring the guest demo</strong><p>Try adding, filtering, moving or deleting an application. No signup is required.</p></div>
+            </aside>
+          )}
           {notice && <button className="notice" onClick={() => setNotice("")} aria-label="Dismiss notification">{notice}<span>×</span></button>}
           <div className="page-heading">
             <div>
