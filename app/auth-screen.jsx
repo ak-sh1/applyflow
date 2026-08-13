@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-export default function AuthScreen({ supabase }) {
+export default function AuthScreen({ supabase, onGuest }) {
   const [mode, setMode] = useState("sign-in");
   const [loadingAction, setLoadingAction] = useState("");
   const [message, setMessage] = useState("");
@@ -44,22 +44,11 @@ export default function AuthScreen({ supabase }) {
     }
   }
 
-  async function continueAsGuest() {
+  function continueAsGuest() {
     setLoadingAction("guest");
     setMessage("");
     setIsError(false);
-
-    const { error } = await supabase.auth.signInAnonymously({
-      options: { data: { guest_demo: true, demo_seeded: false } },
-    });
-
-    setLoadingAction("");
-    if (error) {
-      setIsError(true);
-      setMessage(error.message.toLowerCase().includes("anonymous sign-ins")
-        ? "Guest access is temporarily unavailable. Please use an account for now."
-        : `Could not open the guest demo: ${error.message}`);
-    }
+    onGuest();
   }
 
   function changeMode(nextMode) {

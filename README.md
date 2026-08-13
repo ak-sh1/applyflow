@@ -9,8 +9,8 @@ Interview and Offer.
 
 ## Highlights
 
-- Email/password and one-click guest authentication with Supabase Auth
-- Ready-to-use guest workspace with realistic sample applications
+- Email/password authentication with Supabase Auth
+- One-click, browser-isolated guest demo with realistic sample applications
 - Private per-user records enforced by PostgreSQL Row Level Security
 - Create, read, update and delete operations
 - Search, stage filters, weekly goals and response-rate metrics
@@ -37,16 +37,13 @@ Requirements: Node.js 22 or newer and a Supabase project.
 2. In your Supabase dashboard, open **SQL Editor**, create a new query, paste
    [`supabase/schema.sql`](supabase/schema.sql), and run it once.
 
-3. Open **Authentication → Sign In / Providers** and enable **Allow anonymous
-   sign-ins** under User Signups. This powers the one-click guest demo.
-
-4. Copy the environment template:
+3. Copy the environment template:
 
    ```bash
    cp .env.example .env.local
    ```
 
-5. From Supabase **Project Settings → API**, add the project URL and publishable
+4. From Supabase **Project Settings → API**, add the project URL and publishable
    key to `.env.local`:
 
    ```env
@@ -56,13 +53,13 @@ Requirements: Node.js 22 or newer and a Supabase project.
 
    Do not use or commit the `service_role` key. ApplyFlow does not need it.
 
-6. Start the app:
+5. Start the app:
 
    ```bash
    npm run dev
    ```
 
-7. Open [http://localhost:3000](http://localhost:3000).
+6. Open [http://localhost:3000](http://localhost:3000).
 
 ## Publish on GitHub
 
@@ -94,11 +91,11 @@ Future pushes to `main` will automatically create production deployments.
 ## Security model
 
 The browser uses a Supabase publishable key, which is safe to expose. Access is
-restricted by database policies in `supabase/schema.sql`: signed-in and guest
-users can only select, insert, update or delete rows whose `user_id` matches
-their unique Supabase Auth ID. Guest sessions use the authenticated database
-role, so the same Row Level Security rules protect them. The unauthenticated
-database role has no access to the applications table.
+restricted by database policies in `supabase/schema.sql`: signed-in users can
+only select, insert, update or delete rows whose `user_id` matches their unique
+Supabase Auth ID. The unauthenticated database role has no table access. Guest
+demo records stay in the visitor's browser storage and are never sent to the
+database.
 
 ## Useful commands
 

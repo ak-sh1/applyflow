@@ -5,9 +5,16 @@ import AuthScreen from "./auth-screen";
 import CommandCenter from "./command-center";
 import { getSupabase } from "@/lib/supabase";
 
+const GUEST_SESSION_KEY = "applyflow-guest-session";
+const GUEST_DATA_KEY = "applyflow-guest-applications";
+const GUEST_USER = { id: "applyflow-guest", is_anonymous: true };
+
 export default function Home() {
   const supabase = getSupabase();
   const [user, setUser] = useState(null);
+  const [guestMode, setGuestMode] = useState(() =>
+    typeof window !== "undefined" && window.sessionStorage.getItem(GUEST_SESSION_KEY) === "active",
+  );
   const [loading, setLoading] = useState(Boolean(supabase));
 
   useEffect(() => {
@@ -28,9 +35,21 @@ export default function Home() {
     return () => listener.subscription.unsubscribe();
   }, [supabase]);
 
+  function startGuestDemo() {
+    window.sessionStorage.setItem(GUEST_SESSION_KEY, "active");
+    setGuestMode(true);
+  }
+
+  function exitGuestDemo() {
+    window.sessionStorage.removeItem(GUEST_SESSION_KEY);
+    window.localStorage.removeItem(GUEST_DATA_KEY);
+    setGuestMode(false);
+  }
+
   if (!supabase) return <SetupScreen />;
   if (loading) return <div className="loading-screen"><span className="brand-mark"><span /></span><p>Loading ApplyFlow…</p></div>;
-  if (!user) return <AuthScreen supabase={supabase} />;
+  if (!user && guestMode) return <CommandCenter user={GUEST_USER} supabase={supabase} onGuestExit={exitGuestDemo} />;
+  if (!user) return <AuthScreen supabase={supabase} onGuest={startGuestDemo} />;
 
   return <CommandCenter user={user} supabase={supabase} />;
 }

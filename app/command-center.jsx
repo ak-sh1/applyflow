@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createGuestDemoApplications, STATUSES } from "@/lib/applications";
 
 const WEEK_AGO_AT_LOAD = Date.now() - 7 * 24 * 60 * 60 * 1000;
+const GUEST_DATA_KEY = "applyflow-guest-applications";
 
 function Icon({ children }) {
   return <span aria-hidden="true" className="icon">{children}</span>;
@@ -25,7 +26,21 @@ function normalizeJobUrl(value) {
   }
 }
 
-export default function CommandCenter({ user, supabase }) {
+function createGuestRows(userId) {
+  const now = Date.now();
+  return createGuestDemoApplications(userId).map((application, index) => ({
+    ...application,
+    id: `guest-${index + 1}`,
+    created_at: new Date(now - index * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(now - index * 60 * 60 * 1000).toISOString(),
+  }));
+}
+
+function saveGuestRows(rows) {
+  window.localStorage.setItem(GUEST_DATA_KEY, JSON.stringify(rows));
+}
+
+export default function CommandCenter({ user, supabase, onGuestExit }) {
   const isGuest = Boolean(user.is_anonymous);
   const [applications, setApplications] = useState([]);
   const [activeStatus, setActiveStatus] = useState("All");
@@ -41,6 +56,23 @@ export default function CommandCenter({ user, supabase }) {
     let active = true;
 
     async function loadApplications() {
+      if (isGuest) {
+        const storedRows = window.localStorage.getItem(GUEST_DATA_KEY);
+        let rows;
+        try {
+          rows = storedRows ? JSON.parse(storedRows) : createGuestRows(user.id);
+          if (!Array.isArray(rows)) rows = createGuestRows(user.id);
+        } catch {
+          rows = createGuestRows(user.id);
+        }
+        saveGuestRows(rows);
+        if (!active) return;
+        setApplications(rows);
+        setSelected(rows[0] ?? null);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("applications")
         .select("*")
@@ -51,25 +83,7 @@ export default function CommandCenter({ user, supabase }) {
       if (error) {
         setNotice("Applications could not be loaded. Check that the Supabase schema has been applied.");
       } else {
-        let rows = data ?? [];
-
-        if (isGuest && !rows.length && !user.user_metadata?.demo_seeded) {
-          const { data: demoRows, error: demoError } = await supabase
-            .from("applications")
-            .insert(createGuestDemoApplications(user.id))
-            .select("*");
-
-          if (!active) return;
-          if (demoError) {
-            setNotice("The demo opened, but its sample applications could not be loaded.");
-          } else {
-            rows = demoRows ?? [];
-            await supabase.auth.updateUser({
-              data: { ...user.user_metadata, guest_demo: true, demo_seeded: true },
-            });
-          }
-        }
-
+        const rows = data ?? [];
         setApplications(rows);
         setSelected(rows[0] ?? null);
       }
@@ -78,7 +92,7 @@ export default function CommandCenter({ user, supabase }) {
 
     loadApplications();
     return () => { active = false; };
-  }, [isGuest, supabase, user.id, user.user_metadata]);
+  }, [isGuest, supabase, user.id]);
 
   const visibleApplications = useMemo(() => {
     const normalizedQuery = query.toLowerCase().trim();
@@ -153,6 +167,25 @@ export default function CommandCenter({ user, supabase }) {
 
     setSaving(true);
     setNotice("");
+    if (isGuest) {
+      const timestamp = new Date().toISOString();
+      const application = {
+        ...payload,
+        id: crypto.randomUUID(),
+        created_at: timestamp,
+        updated_at: timestamp,
+      };
+      const rows = [application, ...applications];
+      saveGuestRows(rows);
+      setApplications(rows);
+      setSelected(application);
+      setNotice(`${company} was added to the guest demo.`);
+      setShowForm(false);
+      setSaving(false);
+      formElement.reset();
+      return;
+    }
+
     const { data, error } = await supabase
       .from("applications")
       .insert(payload)
@@ -178,6 +211,16 @@ export default function CommandCenter({ user, supabase }) {
     const status = STATUSES[Math.min(currentIndex + 1, STATUSES.length - 1)];
     if (status === application.status) return;
 
+    if (isGuest) {
+      const updated = { ...application, status, updated_at: new Date().toISOString() };
+      const rows = applications.map((item) => item.id === application.id ? updated : item);
+      saveGuestRows(rows);
+      setApplications(rows);
+      setSelected(updated);
+      setNotice(`${application.company} moved to ${status}.`);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("applications")
       .update({ status })
@@ -200,6 +243,15 @@ export default function CommandCenter({ user, supabase }) {
   async function deleteApplication(application) {
     if (!window.confirm(`Delete the ${application.company} application? This cannot be undone.`)) return;
 
+    if (isGuest) {
+      const rows = applications.filter((item) => item.id !== application.id);
+      saveGuestRows(rows);
+      setApplications(rows);
+      setSelected(rows[0] ?? null);
+      setNotice(`${application.company} was removed from the guest demo.`);
+      return;
+    }
+
     const { error } = await supabase
       .from("applications")
       .delete()
@@ -217,6 +269,10 @@ export default function CommandCenter({ user, supabase }) {
   }
 
   async function signOut() {
+    if (isGuest) {
+      onGuestExit();
+      return;
+    }
     await supabase.auth.signOut();
   }
 
@@ -234,7 +290,7 @@ export default function CommandCenter({ user, supabase }) {
             {showProfile && (
               <div className="profile-menu">
                 <strong>{isGuest ? "Guest demo" : user.email}</strong>
-                <span>{isGuest ? "Sample data belongs only to this private guest session." : "Your application data is private to this account."}</span>
+                <span>{isGuest ? "Sample data stays only in this browser and never reaches the database." : "Your application data is private to this account."}</span>
                 <button onClick={signOut}>{isGuest ? "Exit demo" : "Sign out"}</button>
               </div>
             )}
